@@ -19,6 +19,8 @@ import org.zerock.service.BoardService;
 @AllArgsConstructor
 public class BoardController {
 
+    // 깃 변동사항 커밋
+
     private BoardService service;
 
     @GetMapping("/list")
