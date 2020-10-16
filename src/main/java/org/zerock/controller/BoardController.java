@@ -4,14 +4,24 @@ package org.zerock.controller;
 import lombok.AllArgsConstructor;
 
 import lombok.extern.log4j.Log4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.zerock.domain.BoardAttachVO;
 import org.zerock.domain.BoardVO;
 import org.zerock.domain.Criteria;
 import org.zerock.domain.PageDTO;
 import org.zerock.service.BoardService;
+
+import java.awt.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 
 @Controller
 @Log4j
@@ -55,12 +65,25 @@ public class BoardController {
     @PostMapping("/register")
     public String register(BoardVO board, RedirectAttributes rttr) {
 
+        log.info("========================");
+
         log.info("register: "+board);
 
-        service.register(board);
+        if(board.getAttachList() != null) {
+            board.getAttachList().forEach(attach -> log.info(attach));
+        }
+
+        log.info("========================");
+
+        /*service.register(board);
 
         // 등록 후 result 라는 이름에 board에 번호를 넣어준다.
-        rttr.addFlashAttribute("result", board.getBno());
+        rttr.addFlashAttribute("result", board.getBno());*/
+
+        // 아직은 등록이 이루어지지는 않는다.
+        // 스프링이 제대로 파라미터를 수집하는 것을 확인했으니
+        // 게시물과 첨부파일을 등록한다.
+        service.register(board);
 
         return "redirect:/board/list";
 
@@ -85,6 +108,15 @@ public class BoardController {
 
         log.info("/get or modify");
         model.addAttribute("board", service.get(bno));
+
+    }
+
+    @GetMapping(value = "/getAttachList", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @ResponseBody
+    public ResponseEntity<List<BoardAttachVO>> getAttachList(Long bno) {
+
+        log.info("getAttachList "+bno);
+        return new ResponseEntity<>(service.getAttachList(bno), HttpStatus.OK);
 
     }
 
@@ -175,12 +207,51 @@ public class BoardController {
     public String remove(@RequestParam("bno") Long bno, Criteria cri, RedirectAttributes rttr) {
 
         log.info("remove...."+bno);
+
+        List<BoardAttachVO> attachList = service.getAttachList(bno);
+
         if(service.remove(bno)) {
+            // delete Attach Files
+            deleteFiles(attachList);
+
             rttr.addFlashAttribute("result", "success");
 
         }
         return "redirect:/board/list"+cri.getListLink();
 
     }
+
+    private void deleteFiles(List<BoardAttachVO> attachList) {
+        if(attachList == null || attachList.size() == 0) {
+            return;
+        }
+
+        log.info("delete attach files.......");
+        log.info(attachList);
+
+
+        attachList.forEach(attach -> {
+            try {
+                Path file = Paths.get("/Users/jokeunwan/hoan/upload/"+attach.getUploadPath()+
+                        "/"+attach.getUuid()+"_"+attach.getFileName());
+
+                Files.deleteIfExists(file);
+
+                if(Files.probeContentType(file).startsWith("image")) {
+                    Path thumbNail = Paths.get("/Users/jokeunwan/hoan/upload/"+attach.getUploadPath()+
+                            "/s_"+attach.getUuid()+"_"+attach.getFileName());
+
+                    Files.delete(thumbNail);
+                }
+
+            } catch (Exception e) {
+                log.error("delete file error"+e.getMessage());
+            } // end catch
+        }); // end foreach
+
+    }
+
+
+
 
 }

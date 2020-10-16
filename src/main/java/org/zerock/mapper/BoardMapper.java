@@ -20,6 +20,7 @@ public interface BoardMapper {
     // insert문이 실행되고 생성된 pk 값을 알아야 하는 경
     public void insertSelectKey(BoardVO board);
 
+
     // read 처리
     public BoardVO read(Long bno);
 
@@ -29,7 +30,7 @@ public interface BoardMapper {
     // update 처리
     public int update(BoardVO board);
 
-    // 게시물의 목록과 전체 데이터 수를 구하는 작업은 Criteria아가 필요하지 않지만
+    // 게시물의 목록과 전체 데이터 수를 구하는 작업은 Criteria가 필요하지 않지만
     //
     public int getTotalCount(Criteria cri);
 
