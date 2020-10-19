@@ -9,9 +9,12 @@
 <%-- get.jsp는 게시물 번호를 보여줄 있는 필드를 추가하고, 모든 데이터는 readonly를 지정해서 작성한다.--%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 
-<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%--<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>--%>
 
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jstl/fmt_rt" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core_1_1" %>
+<%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
 
 <%@include file="../includes/header.jsp"%>
 
@@ -59,7 +62,15 @@
 
                      <%-- 여태까지는 직접 버튼에 링크를 처리하는 방식을 사용하여 처리하였지만, 나중에 다양한 상황을 처리하기 위해서 <form> 태그를 이해서 수정한다 --%>
                     <%-- data-oper의 값을 통해 자바스크립트로 처리 --%>
+
+                    <sec:authentication property="principal" var="pinfo" />
+                    <sec:authorize access="isAuthenticated()">
+                    <c:if test="${pinfo.username eq board.writer}">
                     <button data-oper='modify' class="btn btn-default">Modify</button>
+                    </c:if>
+                    </sec:authorize>
+
+
                     <button data-oper='list' class="btn btn-info">List</button>
 
                     <form id='operForm' action="/board/modify" method="get">
@@ -169,8 +180,10 @@
             </div>--%>
             <div class="panel-heading">
                 <i class="fa fa-comments fa-fw"></i> Reply
+                <sec:authorize access="isAuthenticated()">
                 <button id="addReplyBtn" class="btn btn-primary btn-xs pull-right">New Reply
                 </button>
+                </sec:authorize>
             </div>
 
 
@@ -223,7 +236,7 @@
                 </div>
                 <div class="form-group">
                     <label>Replyer</label>
-                    <input class="form-control" name="replyer" value="replyer">
+                    <input class="form-control" name="replyer" value="replyer" readonly>
                 </div>
                 <div class="form-group">
                     <label>Reply Date</label>
@@ -321,9 +334,23 @@
         var modalRemoveBtn = $("#modalRemoveBtn");
         var modalRegisterBtn = $("#modalRegisterBtn");
 
+        var replyer = null;
+
+        <sec:authorize access="isAuthenticated()">
+
+        var replyer = '<sec:authentication property="principal.username" />';
+
+        </sec:authorize>
+
+        var csrfHeaderName = "${_csrf.headerName}";
+        var csrfTokenValue = "${_csrf.token}";
+
+
+
         $("#addReplyBtn").on("click", function(e){
 
             modal.find("input").val("");
+            modal.find("input[name='replyer']").val(replyer);
             modalInputReplyDate.closest("div").hide();
             modal.find("button[id != 'modalCloseBtn']").hide();
 
@@ -331,6 +358,11 @@
 
             $(".modal").modal("show");
 
+        });
+
+        // Ajax spring security header...
+        $(document).ajaxSend(function (e, xhr, options) {
+           xhr.setRequestHeader(csrfHeaderName, csrfTokenValue);
         });
 
         modalRegisterBtn.on("click", function (e) {
@@ -375,7 +407,29 @@
 
         // 댓글 수정 작
         modalModBtn.on("click", function (e) {
-           var reply = {rno:modal.data("rno"), reply: modalInputReply.val()};
+
+            var originalReplyer = modalInputReplyer.val();
+
+
+           var reply = {
+               rno:modal.data("rno"),
+               reply: modalInputReply.val(),
+               replyer: originalReplyer};
+
+
+           if(!replyer) {
+               alert("로그인 후 수정이 가능합니다.")
+               modal.modal("hide");
+               return;
+           }
+
+           console.log("Original Replyer: "+originalReplyer);
+
+           if(replyer != originalReplyer) {
+               alert("자신이 작성한 댓글만 수정이 가능합니다.");
+               modal.modal("hide");
+               return;
+           }
 
            replyService.update(reply, function (result) {
 
@@ -391,7 +445,30 @@
         modalRemoveBtn.on("click", function (e) {
            var rno = modal.data("rno");
 
-           replyService.remove(rno, function (result) {
+           console.log("RNO: "+rno);
+           console.log("REPLYER: "+replyer);
+
+           if(!replyer) {
+               alert("로그인후 삭제가 가능합니다. ");
+               modal.modal("hide");
+               return;
+           }
+
+           var originalReplyer = modalInputReplyer.val();
+
+           console.log("Original Replyer: "+originalReplyer); // 댓글의 원래 작성자
+
+            if(replyer != originalReplyer) {
+                alert("자신이 작성한 댓글만 삭제가 가능합니다");
+                modal.modal("hide");
+                return;
+
+            }
+
+
+
+
+           replyService.remove(rno, originalReplyer, function (result) {
                alert(result);
                modal.modal("hide");
                showList(pageNum);

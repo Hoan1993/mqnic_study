@@ -7,6 +7,7 @@ import lombok.extern.log4j.Log4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -52,17 +53,18 @@ public class BoardController {
 
     }
 
-
     // register는 입력 페이지를 보여주는 역할만을 수행한다.
     // 이런 식으로 get 방식으로 url이 들어오면
     // 스프링은 알아서 views/board 에서 그 url에 해당하는 .jsp를 찾는다.
     @GetMapping("/register")
+    @PreAuthorize("isAuthenticated()")
     public void register() {
 
     }
 
 
     @PostMapping("/register")
+    @PreAuthorize("isAuthenticated()")
     public String register(BoardVO board, RedirectAttributes rttr) {
 
         log.info("========================");
@@ -156,6 +158,7 @@ public class BoardController {
     }*/
 
 
+    @PreAuthorize("principal.username == #board.writer")
     @PostMapping("/modify")
     public String modify(BoardVO board, Criteria cri, RedirectAttributes rttr) {
         log.info("modify: "+board);
@@ -163,8 +166,6 @@ public class BoardController {
         if(service.modify(board)) {
             rttr.addFlashAttribute("result", "success");
         }
-
-
 
         return "redirect:/board/list"+cri.getListLink();
 
@@ -203,8 +204,10 @@ public class BoardController {
 
     }*/
 
+    @PreAuthorize("principal.username == #writer")
     @PostMapping("/remove")
-    public String remove(@RequestParam("bno") Long bno, Criteria cri, RedirectAttributes rttr) {
+    public String remove(@RequestParam("bno") Long bno, Criteria cri,
+                         RedirectAttributes rttr, String writer) {
 
         log.info("remove...."+bno);
 

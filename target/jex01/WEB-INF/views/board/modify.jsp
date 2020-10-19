@@ -9,9 +9,12 @@
 <%-- modify.jsp는 get.jsp와 같지만 수정이 가능한 '제목'이나 '내용' 등이 readonly 속성이 없도록 작성한다.--%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 
-<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%--<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>--%>
 
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jstl/fmt_rt" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core_1_1" %>
+<%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
 
 <%@include file="../includes/header.jsp"%>
 
@@ -33,7 +36,7 @@
 
 
             <form role="form" action="/board/modify" method="post">
-
+                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
                 <%-- 리스트로 돌아갈 때, 원래 있던 페이지로 돌아가기 위해서
                     무조건 1페이지로 돌아가는 것이 아니라--%>
                 <input type="hidden" name="pageNum" value='<c:out value="${cri.pageNum}" />'>
@@ -71,9 +74,16 @@
                     value='<c:out value="${board.regdate}" />' readonly="readonly">
                 </div>
 
+                <sec:authentication property="principal" var="pinfo" />
+                <sec:authorize access="isAuthenticated()">
+                    <c:if test="${pinfo.username eq board.writer}">
 
-                <button type="submit" data-oper="modify" class="btn btn-default">Modify</button>
-                <button type="submit" data-oper="remove" class="btn btn-danger">Remove</button>
+                    <button type="submit" data-oper="modify" class="btn btn-default">Modify</button>
+                    <button type="submit" data-oper="remove" class="btn btn-danger">Remove</button>
+                    </c:if>
+                </sec:authorize>
+
+
                 <button type="submit" data-oper="list" class="btn btn-info">List</button>
 
                 <%--<button data-oper="modify" class="btn btn-default" onclick="location.href='/board/modify?bno=<c:out value="${board.bno}" />'">Modify</button>
@@ -280,6 +290,10 @@
         return true;
     }
 
+    var csrfHeaderName = "${_csrf.headerName}";
+    var csrfTokenValue = "${_csrf.token}";
+
+
     $("input[type='file']").change(function (e) {
         var formData = new FormData();
 
@@ -301,12 +315,15 @@
             contentType: false,
             data: formData,
             type: 'POST',
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader(csrfHeaderName, csrfTokenValue);
+            },
             dataType: 'json',
             success: function (result) {
                 console.log(result);
-                showUploadResult(result)
+                showUploadResult(result);   // 업로드 결과 처리 함수
             }
-        });
+        }); // $.ajax
     });
 
 

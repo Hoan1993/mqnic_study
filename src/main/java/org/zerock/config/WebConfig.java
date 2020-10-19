@@ -2,20 +2,18 @@ package org.zerock.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.filter.CharacterEncodingFilter;
+import org.springframework.web.filter.DelegatingFilterProxy;
 import org.springframework.web.servlet.support.AbstractAnnotationConfigDispatcherServletInitializer;
 
-import javax.servlet.Filter;
-import javax.servlet.MultipartConfigElement;
-import javax.servlet.ServletRegistration;
+import javax.servlet.*;
 
 @Configuration
 public class WebConfig extends AbstractAnnotationConfigDispatcherServletInitializer {
 
 
-
     @Override
     protected Class<?>[] getRootConfigClasses() {
-        return new Class[] {RootConfig.class};
+        return new Class[] {RootConfig.class, SecurityConfig.class};
     }
 
     @Override
@@ -46,6 +44,7 @@ public class WebConfig extends AbstractAnnotationConfigDispatcherServletInitiali
 
         characterEncodingFilter.setEncoding("UTF-8");
         characterEncodingFilter.setForceEncoding(true);
+
 
         return new Filter[] { characterEncodingFilter};
 
