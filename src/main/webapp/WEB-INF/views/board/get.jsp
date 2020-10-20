@@ -187,7 +187,6 @@
             </div>
 
 
-
             <%-- /.panel-heading --%>
             <div class="panel-body">
                 <ul class="chat">
